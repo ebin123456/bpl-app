@@ -2,6 +2,8 @@ from bs4 import BeautifulSoup
 import mechanize
 import sys
 import os
+import sqlite3
+
 
 
 def get_data(url):
@@ -17,6 +19,7 @@ def get_data(url):
     return data.read()
 def parse_data(data):
 	first = True
+	out=[]
 	soup = BeautifulSoup(data)
 	lg_table = soup.find_all('table',class_="league-wc table mtn bbn")[0].find_all('tr')
 	#print lg_table
@@ -26,30 +29,29 @@ def parse_data(data):
 			first = False
 			continue
 		td = row.find_all('td')
-		print td[1].text
-		print td[2].text
-		print td[3].text
-def insert_db():
-	sql = ''' CREATE TABLE Student(
-  id INTEGER PRIMARY KEY,
-  team TEXT,
-  week INTEGER, 
-  win INTEGER,
-  draw INTEGER,
-  loss INTEGER,
-  f INTEGER,
-  a INTEGER,
-  gd INTEGER,
-  pts INTEGER,
-);'''		
-	    	# for col in td:
-	    	# 	print col.text       
+		td.pop(0)
+		td.pop(0)
+		tmp_row = []
+		#tmp_row.append('')
+		for col in td:
+			tmp_row.append(col.text)
+		out.append(tuple(tmp_row))
+		
+	return  out
+		
 
 
+def insert_to_db(data_to_db):
+	conn = sqlite3.connect('test.db')
+	c = conn.cursor()
+	c.executemany('INSERT INTO epl_table VALUES (?,?,?,?,?,?,?,?,?)', data_to_db)
+	conn.commit()
+	conn.close()
 
 def main():
 	data = get_data('http://livescore.com/soccer/england/premier-league/')
-	parse_data(data)
+	data_to_db = parse_data(data)
+	insert_to_db(data_to_db)
 if __name__ == '__main__':
 	main()
 
